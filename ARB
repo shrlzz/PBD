@@ -1,0 +1,37 @@
+import RPi.GPIO as GPIO import time import sys import subprocess 
+# Define GPIO pins motor_pwm_pin = 18  # PWM pin for motor speed control motor_dir1_pin = 23  # Motor direction 1 motor_dir2_pin = 24  # Motor direction 2 
+  
+rudder_pwm_pin = 17  # PWM pin for rudder control 
+  
+# Set up GPIO 
+GPIO.setmode(GPIO.BCM) 
+GPIO.setup(motor_pwm_pin, GPIO.OUT) 
+GPIO.setup(motor_dir1_pin, GPIO.OUT) 
+GPIO.setup(motor_dir2_pin, GPIO.OUT) 
+  
+GPIO.setup(rudder_pwm_pin, GPIO.OUT) 
+  
+motor_pwm = GPIO.PWM(motor_pwm_pin, 100) motor_pwm.start(0) 
+  
+rudder_pwm = GPIO.PWM(rudder_pwm_pin, 50) rudder_pwm.start(0)
+def control_motor(speed, direction): 
+    GPIO.output(motor_dir1_pin, direction)     GPIO.output(motor_dir2_pin, not direction)     motor_pwm.ChangeDutyCycle(speed) 
+def control_rudder(angle): 
+    duty_cycle = (angle / 18) + 2  # Convert angle to duty cycle     rudder_pwm.ChangeDutyCycle(duty_cycle)     time.sleep(0.5)  
+def execute_command(command): 
+    process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)     output, error = process.communicate()     return output.decode("utf-8") 
+if __name__ == '__main__': 
+    try:         while True: 
+            command = execute_command("raspcontroller get_command")  # Assuming 
+              raspcontroller is a command-line tool to get commands 
+  
+            if command == 'forward': 
+                control_motor(50, 1)  # Adjust the speed and direction as needed             elif command == 'backward': 
+                control_motor(50, 0)             elif command == 'left': 
+                control_rudder(90)  # Adjust the angle for left turn             elif command == 'right': 
+                control_rudder(0)   # Adjust the angle for right turn 
+            else: 
+                control_motor(0, 1)  # Stop the boat if no valid command 
+    except KeyboardInterrupt: 
+    pass     finally: 
+        GPIO.cleanup() 
